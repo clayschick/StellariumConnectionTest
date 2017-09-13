@@ -1,0 +1,27 @@
+﻿{
+    "location": {
+        "altitude": 0,
+        "country": "United States",
+        "landscapeKey": "",
+        "latitude": 47.606201171875,
+        "longitude": -122.33209991455078,
+        "name": "47.6062, -122.332",
+        "planet": "Earth",
+        "role": "X",
+        "state": "Washington"
+    },
+    "selectioninfo": "",
+    "time": {
+        "deltaT": 0.00080649376624148121,
+        "gmtShift": -0.29166666666666669,
+        "isTimeNow": true,
+        "jday": 2458009.4455448263,
+        "local": "2017-09-12T15:41:35.073",
+        "timeZone": "UTC-07:00",
+        "timerate": 0.000011574074074074073,
+        "utc": "2017-09-12T22:41:35.073Z"
+    },
+    "view": {
+        "fov": 60
+    }
+}
