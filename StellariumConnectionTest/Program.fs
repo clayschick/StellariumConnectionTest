@@ -9,6 +9,11 @@ open System.Threading
 // System.Net.Sockets.Socket extension methods
 type Socket with
     member socket.AsyncAccept() = Async.FromBeginEnd(socket.BeginAccept, socket.EndAccept)
+    member socket.AsyncReceive(buffer:byte[], ?offset, ?count) = 
+        let offset = defaultArg offset 0
+        let count = defaultArg count buffer.Length
+        let beginReceive(b,o,c,cb,s) = socket.BeginReceive(b,o,c,SocketFlags.None,cb,s)
+        Async.FromBeginEnd(buffer, offset, count, beginReceive, socket.EndReceive)
 
 type Server() =
     static member start() =
@@ -22,10 +27,13 @@ type Server() =
 
         printfn "Server listening on port %d" 10001
 
+        // A recursive call is useful if you want to carry an immutable state
         let rec loop() = async {
             printfn "Waiting for requests"
             let! socket = listener.AsyncAccept()
             printfn "Received connection request"
+
+
 
             return! loop()
         }
