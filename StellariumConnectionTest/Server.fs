@@ -5,6 +5,7 @@ open System.IO
 open System.Net
 open System.Net.Sockets
 open System.Threading
+open vtortola.WebSockets
 
 let cts = new CancellationTokenSource()
 

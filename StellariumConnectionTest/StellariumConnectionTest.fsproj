@@ -49,6 +49,9 @@
       <HintPath>..\packages\websocket-sharp.clone.3.0.0\lib\net45\websocket-sharp.clone.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.CSharp" />
+    <Reference Include="deniszykov.WebSocketListener">
+      <HintPath>..\packages\deniszykov.WebSocketListener.4.0.0\lib\net45\deniszykov.WebSocketListener.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AssemblyInfo.fs" />
