@@ -29,20 +29,78 @@ type TcpListener with
             return None
     }
 
+let getHMS(hours : float) =
+    let h = Math.Floor(hours)
+
+    let hours_m = (hours - h) * 60.0
+    let m = Math.Floor(hours_m)
+
+    let s = (hours_m - m) * 60.0
+
+    // #Evitando los .60..
+    //if s >= 59.99 then 
+    //    s = 0
+    //else
+    //    m += 1
+
+    //if m >= 60 then
+    //    m = 60-m
+    //else
+        //h += 1
+
+    (h, m, s)
+
+let getGMS(degrees : float) = 
+    // #Evitando operaciones con valores negativos..
+    let mutable to_neg : bool = false
+    let mutable degs = degrees
+
+    if degs < 0.0 then
+        degs = Math.Abs(degs)
+    else
+        to_neg = true
+
+    let mutable d = Math.Floor(degs)
+
+    let degs_m = (degs - d) * 60.0
+    let m = Math.Floor(degs_m)
+
+    let s = (degs_m - m)*60.0
+
+    //#Evitando el .60..
+    //if s >= 59.99:
+    //    s = 0
+    //    m += 1
+    //if m >= 60.0:
+        //m = 60.0-m
+        //d += 1
+
+    if to_neg then
+        d = -d
+    else
+        d = d
+
+    (d, m, s)
+
 let ReadCoordinates(stream : NetworkStream) = async {
 
     let! response = stream.AsyncRead(20)
     let streamLength = BitConverter.ToInt16(response, 0)
 
     let raInt = BitConverter.ToUInt32(response, 12)
-    let decInt = BitConverter.ToUInt32(response, 16)
+    let decInt = BitConverter.ToInt32(response, 16)
 
-    let ra = float raInt * (Math.PI / float 0x80000000)
-    let dec = float decInt * (Math.PI / float 0x80000000)
-    let cdec = Math.Cos(dec)
+    //let ra = float raInt * (Math.PI / float 0x80000000) // "a value of 0x80000000 means 12h"
+    //let dec = float decInt * (Math.PI / float 0x80000000)
+    //let cdec = Math.Cos(dec)
+
+    let ra_h = float raInt * 12.0 / 2147483648.0
+    let dec_h = float decInt * 90.0 / 1073741824.0
+    let ra = getHMS(ra_h)
+    let dec = getGMS(dec_h)
 
     if (response.Length > 0) then
-        return Some struct (ra, dec, cdec)
+        return Some (ra, dec)
     else
         return None
 }
@@ -53,7 +111,7 @@ let AcceptMessages(stream : NetworkStream) = async {
         match message with
         | Choice1Of2 message ->
             match message with
-            | Some struct (ra, dec, cdec) -> printfn "RA : %f -- Dec : %f" ra dec
+            | Some ((ra_h,ra_m,ra_s), (dec_d,dec_m,dec_s)) -> printfn "RA = %fh %fm %fs -- DEC = %fd %fm %fs" ra_h ra_m ra_s dec_d dec_m dec_s
             | None -> ignore()
         | Choice2Of2 error -> 
             printfn "Error reading stream : %A" error
@@ -78,10 +136,6 @@ let start() =
 
     let cts = new CancellationTokenSource()
 
-    //let listener = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp)
-    //listener.Bind(endpoint)
-    //listener.Listen(int SocketOptionName.MaxConnections)
-
     let listener = new TcpListener(endpoint)
     listener.Start()
 
@@ -91,4 +145,5 @@ let start() =
 
     // return a disposable so that we may handle the lifecycle of the server object ourselves
     // listener has a Dispose method, can I just return the listener and use it's Dispose method?
+    // -- TcpLIstener does not have a Dispose method
     { new IDisposable with member x.Dispose() = cts.Cancel(); listener.Stop() }
