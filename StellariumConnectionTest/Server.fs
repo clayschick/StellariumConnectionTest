@@ -90,10 +90,6 @@ let ReadCoordinates(stream : NetworkStream) = async {
     let raInt = BitConverter.ToUInt32(response, 12)
     let decInt = BitConverter.ToInt32(response, 16)
 
-    //let ra = float raInt * (Math.PI / float 0x80000000) // "a value of 0x80000000 means 12h"
-    //let dec = float decInt * (Math.PI / float 0x80000000)
-    //let cdec = Math.Cos(dec)
-
     let ra_h = float raInt * 12.0 / 2147483648.0
     let dec_h = float decInt * 90.0 / 1073741824.0
     let ra = getHMS(ra_h)
