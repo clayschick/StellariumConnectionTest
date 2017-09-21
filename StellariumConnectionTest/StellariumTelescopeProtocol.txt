@@ -1,3 +1,7 @@
+﻿Source code at:
+https://github.com/Stellarium/stellarium/blob/master/plugins/TelescopeControl/src/clients/TelescopeClient.cpp
+
+
 ﻿/*
 Author and Copyright of this file and of the stellarium telescope library:
 Johannes Gajdosik, 2006

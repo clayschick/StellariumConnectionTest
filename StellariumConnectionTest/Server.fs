@@ -9,8 +9,8 @@ open System.Threading
 
 
 // Look at
+// *** --> http://yoestuve.es/blog/communications-between-python-and-stellarium-stellarium-telescope-protocol/ <-- ***
 // http://theburningmonk.com/2011/12/f-from-string-to-byte-array-and-back/
-// http://yoestuve.es/blog/communications-between-python-and-stellarium-stellarium-telescope-protocol/ <-- ***
 // https://github.com/fcsonline/node-telescope-server/blob/master/servers/stellarium.js
 // https://codereview.stackexchange.com/questions/15364/simple-stupid-f-async-telnet-client
 // http://www.fssnip.net/1E/title/Async-TCP-Server
@@ -96,7 +96,7 @@ let ReadCoordinates(stream : NetworkStream) = async {
     let dec = getGMS(dec_h)
 
     if (response.Length > 0) then
-        return Some (ra, dec)
+        return Some (ra, dec) // <-- Turn this into a record type
     else
         return None
 }
