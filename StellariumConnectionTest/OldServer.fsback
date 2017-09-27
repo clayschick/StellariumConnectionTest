@@ -1,0 +1,246 @@
+﻿//module Server
+
+//open System
+//open System.Net
+//open System.Net.Sockets
+//open System.Threading
+//open FSharp.Control.Reactive.Observable
+
+//// Look at
+//// *** --> http://yoestuve.es/blog/communications-between-python-and-stellarium-stellarium-telescope-protocol/ <-- ***
+//// http://theburningmonk.com/2011/12/f-from-string-to-byte-array-and-back/
+//// https://github.com/fcsonline/node-telescope-server/blob/master/servers/stellarium.js
+//// https://codereview.stackexchange.com/questions/15364/simple-stupid-f-async-telnet-client
+//// http://www.fssnip.net/1E/title/Async-TCP-Server
+//// https://github.com/vtortola/WebSocketListener/blob/master/samples/FsharpEchoServer/Program.fs
+//// https://github.com/vtortola/WebSocketListener/wiki/F%23-Echo-Server
+
+//let cts = new CancellationTokenSource()
+
+//type TcpListener with
+//    member listener.AcceptClientOptionAsync = async {
+//        let! client = Async.AwaitTask <| listener.AcceptSocketAsync()
+
+//        if (not(isNull client)) then
+//            return Some client
+//        else
+//            return None
+//    }
+
+//let getHMS(hours : float) =
+//    let h = Math.Floor(hours)
+
+//    let hours_m = (hours - h) * 60.0
+//    let m = Math.Floor(hours_m)
+
+//    let s = (hours_m - m) * 60.0
+
+//    // #Evitando los .60..
+//    //if s >= 59.99 then 
+//    //    s = 0
+//    //else
+//    //    m += 1
+
+//    //if m >= 60 then
+//    //    m = 60-m
+//    //else
+//        //h += 1
+
+//    (h, m, s)
+
+//let getGMS(degrees : float) = 
+//    // #Evitando operaciones con valores negativos..
+//    let mutable to_neg : bool = false
+//    let mutable degs = degrees
+
+//    if degs < 0.0 then
+//        degs = Math.Abs(degs)
+//    else
+//        to_neg = true
+
+//    let mutable d = Math.Floor(degs)
+
+//    let degs_m = (degs - d) * 60.0
+//    let m = Math.Floor(degs_m)
+
+//    let s = (degs_m - m)*60.0
+
+//    //#Evitando el .60..
+//    //if s >= 59.99:
+//    //    s = 0
+//    //    m += 1
+//    //if m >= 60.0:
+//        //m = 60.0-m
+//        //d += 1
+
+//    if to_neg then
+//        d = -d
+//    else
+//        d = d
+
+//    (d, m, s)
+
+//let ReadCoordinates(stream : NetworkStream) = async {
+
+//    // Or is this where I start the observable sequence?
+//    let obs1 = liftAsync stream.AsyncRead
+
+//    obs1 20
+//    |> subscribe(fun results -> printfn "Got some results : %A" results)
+//    |> ignore
+
+//    // ^^^ This shit works!
+
+//    let! response = stream.AsyncRead(20)
+
+//    let raInt = BitConverter.ToUInt32(response, 12)
+//    let decInt = BitConverter.ToInt32(response, 16)
+
+//    let ra_h = float raInt * 12.0 / 2147483648.0
+//    let dec_h = float decInt * 90.0 / 1073741824.0
+//    let ra = getHMS(ra_h)
+//    let dec = getGMS(dec_h)
+
+//    if (response.Length > 0) then
+//        return Some (ra, dec) // <-- Turn this into a record type
+//    else
+//        return None
+//}
+
+//let AcceptMessages(stream : NetworkStream) = async {
+//    while not cts.IsCancellationRequested do
+//        let! message = Async.Catch(ReadCoordinates(stream))
+//        match message with
+//        | Choice1Of2 message ->
+//            match message with
+//            | Some ((ra_h,ra_m,ra_s), (dec_d,dec_m,dec_s)) -> printfn "RA = %fh %fm %fs -- DEC = %fd %fm %fs" ra_h ra_m ra_s dec_d dec_m dec_s
+//            | None -> ignore()
+//        | Choice2Of2 error -> 
+//            printfn "Error reading stream : %A" error
+//}
+
+//let AcceptMessages2(stream : NetworkStream) = 
+//    while not cts.IsCancellationRequested do
+//        let message = Async.Catch(ReadCoordinates(stream))
+//        //match message with
+//        //| Choice1Of2 message ->
+//        //    match message with
+//        //    | Some ((ra_h,ra_m,ra_s), (dec_d,dec_m,dec_s)) -> printfn "RA = %fh %fm %fs -- DEC = %fd %fm %fs" ra_h ra_m ra_s dec_d dec_m dec_s
+//        //    | None -> ignore()
+//        //| Choice2Of2 error -> 
+//            //printfn "Error reading stream : %A" error
+
+
+//let AcceptClients(listener : TcpListener) = async {
+//    while not cts.IsCancellationRequested do
+//        let! result = Async.Catch(listener.AcceptClientOptionAsync)
+//        match result with
+//        | Choice1Of2 result ->
+//            match result with
+//            | Some clientSocket -> Async.Start <| AcceptMessages(new NetworkStream(clientSocket))
+//            | None -> ignore()
+//        | Choice2Of2 error ->
+//            printfn "Error accepting clients : %A" error
+//}
+
+//let AcceptClients2(listener : TcpListener) = async {
+//    while not cts.IsCancellationRequested do
+//        let! result = Async.Catch(listener.AcceptClientOptionAsync)
+//        match result with
+//        | Choice1Of2 result ->
+//            match result with
+//            | Some clientSocket -> AcceptMessages(new NetworkStream(clientSocket)) |> ignore
+//            | None -> ignore()
+//        | Choice2Of2 error ->
+//            printfn "Error accepting clients : %A" error
+//}
+
+//let start() =
+//    //let ipAddr = IPAddress.Parse("192.168.1.71")
+//    let ipAddr = IPAddress.Any
+//    let endpoint = IPEndPoint(ipAddr, 10001)
+
+//    let cts = new CancellationTokenSource()
+
+//    let listener = new TcpListener(endpoint)
+//    listener.Start()
+
+//    // start an Async computation on another thread that we can cancel using the disposable below
+//    // need to figure out how to use the cancellation token in the cts value
+//    Async.Start <| AcceptClients listener
+
+//    // Can I also start the Timer and current coordinates here?
+//    // Can I get the stream back here
+
+//    // return a disposable so that we may handle the lifecycle of the server object ourselves
+//    // listener has a Dispose method, can I just return the listener and use it's Dispose method?
+//    // -- TcpLIstener does not have a Dispose method
+//    { new IDisposable with member x.Dispose() = cts.Cancel(); listener.Stop() }
+
+//let AcceptClients4(listener : TcpListener) =
+
+ 
+//let createListenerAndClientObservable() =
+//    //let ipAddr = IPAddress.Parse("192.168.1.71")
+//    let ipAddr = IPAddress.Any
+//    let endpoint = IPEndPoint(ipAddr, 10001)
+
+//    let cts = new CancellationTokenSource()
+
+//    let listener = new TcpListener(endpoint)
+//    listener.Start()
+
+//    // Need to run 2 tasks in Parallel - 1 for current position; 1 for target position
+//     //maybe use the main thread to put them together to know if we are getting close to the target or not?
+//    //Async.Start(AcceptClients2 listener, cancellationToken = cts.Token) // <-- target position
+
+//    let obs = liftAsync listener.AcceptSocketAsync
+
+//    let task = async {
+        
+//    }
+
+//let start3() =
+
+//    // Create a function that will return the async task and the observable in a tuple like on:
+//    // https://fsharpforfunandprofit.com/posts/concurrency-reactive/
+
+//    // need to start the server and return an observable from liftAsync listener.AcceptSocketAsync()
+//    let server, clientObs = createListenerAndClientObservable
+//    //let timer, currentObs = createTimerAndObservable
+
+//    // return a disposable so that we may handle the lifecycle of the server object ourselves
+//    // listener has a Dispose method, can I just return the listener and use it's Dispose method?
+//    // -- TcpLIstener does not have a Dispose method
+//    { new IDisposable with member x.Dispose() = cts.Cancel(); listener.Stop() }
+
+//let createObservable(socket : Socket) =
+//    let stream = new NetworkStream(socket)
+//    let obs = liftAsync stream.AsyncRead
+//    obs
+
+//let start2() = async {
+//    let ipAddr = IPAddress.Any
+//    let endpoint = IPEndPoint(ipAddr, 10001)
+
+//    let cts = new CancellationTokenSource()
+
+//    let listener = new TcpListener(endpoint)
+//    listener.Start()
+
+
+//    while not cts.IsCancellationRequested do // while loop body has type unit or int (1 or 0)
+//        //let! clientSocket = Async.AwaitTask <| listener.AcceptSocketAsync() 
+//        // ^^ don't really care about non-blocking because we are already in an async workflow
+
+//        let clientSocket = listener.AcceptSocket()
+//        createObservable(clientSocket)
+//        //let stream = new NetworkStream(clientSocket)
+
+//        //let obs = liftAsync stream.AsyncRead
+
+//        //return obs
+     
+//    { new IDisposable with member x.Dispose() = cts.Cancel(); listener.Stop() }
+//}
+    

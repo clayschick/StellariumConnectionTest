@@ -1,32 +1,23 @@
 ﻿module Server
 
 open System
-open System.IO
 open System.Net
 open System.Net.Sockets
-open System.Net.WebSockets
 open System.Threading
-
-
-// Look at
-// *** --> http://yoestuve.es/blog/communications-between-python-and-stellarium-stellarium-telescope-protocol/ <-- ***
-// http://theburningmonk.com/2011/12/f-from-string-to-byte-array-and-back/
-// https://github.com/fcsonline/node-telescope-server/blob/master/servers/stellarium.js
-// https://codereview.stackexchange.com/questions/15364/simple-stupid-f-async-telnet-client
-// http://www.fssnip.net/1E/title/Async-TCP-Server
-// https://github.com/vtortola/WebSocketListener/blob/master/samples/FsharpEchoServer/Program.fs
-// https://github.com/vtortola/WebSocketListener/wiki/F%23-Echo-Server
+open System.Reactive
+open System.Reactive.Linq
+open System.Reactive.Concurrency
+open System.Reactive.Disposables
+open FSharp.Control.Reactive.Builders
+open FSharp.Control.Reactive.Observable
+open FSharp.Control.Reactive.Disposables
 
 let cts = new CancellationTokenSource()
 
 type TcpListener with
-    member listener.AcceptClientOptionAsync = async {
-        let! client = Async.AwaitTask <| listener.AcceptSocketAsync()
-
-        if (not(isNull client)) then
-            return Some client
-        else
-            return None
+    member l.AcceptClientAsync = async {
+        let! client = Async.AwaitTask <| l.AcceptSocketAsync()
+        return client
     }
 
 let getHMS(hours : float) =
@@ -37,7 +28,6 @@ let getHMS(hours : float) =
 
     let s = (hours_m - m) * 60.0
 
-    // #Evitando los .60..
     //if s >= 59.99 then 
     //    s = 0
     //else
@@ -50,8 +40,7 @@ let getHMS(hours : float) =
 
     (h, m, s)
 
-let getGMS(degrees : float) = 
-    // #Evitando operaciones con valores negativos..
+let getDMS(degrees : float) = 
     let mutable to_neg : bool = false
     let mutable degs = degrees
 
@@ -82,64 +71,32 @@ let getGMS(degrees : float) =
 
     (d, m, s)
 
-let ReadCoordinates(stream : NetworkStream) = async {
 
-    let! response = stream.AsyncRead(20)
-    let streamLength = BitConverter.ToInt16(response, 0)
-
-    let raInt = BitConverter.ToUInt32(response, 12)
-    let decInt = BitConverter.ToInt32(response, 16)
+let readCoordinates(coords : byte[]) =
+    let raInt = BitConverter.ToUInt32(coords, 12)
+    let decInt = BitConverter.ToInt32(coords, 16)
 
     let ra_h = float raInt * 12.0 / 2147483648.0
     let dec_h = float decInt * 90.0 / 1073741824.0
     let ra = getHMS(ra_h)
-    let dec = getGMS(dec_h)
+    let dec = getDMS(dec_h)
 
-    if (response.Length > 0) then
-        return Some (ra, dec) // <-- Turn this into a record type
+    if (coords.Length > 0) then
+        Some (ra, dec) // <-- Turn this into a record type
     else
-        return None
-}
+        None
 
-let AcceptMessages(stream : NetworkStream) = async {
-    while not cts.IsCancellationRequested do
-        let! message = Async.Catch(ReadCoordinates(stream))
-        match message with
-        | Choice1Of2 message ->
-            match message with
-            | Some ((ra_h,ra_m,ra_s), (dec_d,dec_m,dec_s)) -> printfn "RA = %fh %fm %fs -- DEC = %fd %fm %fs" ra_h ra_m ra_s dec_d dec_m dec_s
-            | None -> ignore()
-        | Choice2Of2 error -> 
-            printfn "Error reading stream : %A" error
-}
-
-let AcceptClients(listener : TcpListener) = async {
-    while not cts.IsCancellationRequested do
-        let! result = Async.Catch(listener.AcceptClientOptionAsync)
-        match result with
-        | Choice1Of2 result ->
-            match result with
-            | Some clientSocket -> Async.Start <| AcceptMessages(new NetworkStream(clientSocket))
-            | None -> ignore()
-        | Choice2Of2 error ->
-            printfn "Error accepting clients : %A" error
-}
-
-let start() =
-    //let ipAddr = IPAddress.Parse("192.168.1.71")
+let listen() = 
     let ipAddr = IPAddress.Any
     let endpoint = IPEndPoint(ipAddr, 10001)
-
-    let cts = new CancellationTokenSource()
-
     let listener = new TcpListener(endpoint)
+
     listener.Start()
 
-    // start an Async computation on another thread that we can cancel using the disposable below
-    // need to figure out how to use the cancellation token in the cts value
-    Async.Start <| AcceptClients(listener)
+    //observe.While ((fun () -> true), ofAsync(listener.AcceptClientAsync))
+    //|> bind( (fun socket -> observe.Yield(new NetworkStream(socket))) )
+    //|> bind(fun stream -> observe.While( (fun _ -> true), ofAsync(stream.AsyncRead(20)) ))
 
-    // return a disposable so that we may handle the lifecycle of the server object ourselves
-    // listener has a Dispose method, can I just return the listener and use it's Dispose method?
-    // -- TcpLIstener does not have a Dispose method
-    { new IDisposable with member x.Dispose() = cts.Cancel(); listener.Stop() }
+    observe.While ((fun () -> true), ofAsync(listener.AcceptClientAsync))
+    |> bind( (fun socket -> observe.Yield(new NetworkStream(socket))) )
+    |> bind(fun stream -> observe.While( (fun _ -> true), ofAsync(stream.AsyncRead(20)) ))
