@@ -82,21 +82,18 @@ let readCoordinates(coords : byte[]) =
     let dec = getDMS(dec_h)
 
     if (coords.Length > 0) then
-        Some (ra, dec) // <-- Turn this into a record type
+        Some (ra, dec) // <-- Use the Coordinates type on the Scope module
     else
         None
 
 let listen() = 
     let ipAddr = IPAddress.Any
     let endpoint = IPEndPoint(ipAddr, 10001)
-    let listener = new TcpListener(endpoint)
+    let listener = TcpListener(endpoint)
 
     listener.Start()
-
-    //observe.While ((fun () -> true), ofAsync(listener.AcceptClientAsync))
-    //|> bind( (fun socket -> observe.Yield(new NetworkStream(socket))) )
-    //|> bind(fun stream -> observe.While( (fun _ -> true), ofAsync(stream.AsyncRead(20)) ))
 
     observe.While ((fun () -> true), ofAsync(listener.AcceptClientAsync))
     |> bind( (fun socket -> observe.Yield(new NetworkStream(socket))) )
     |> bind(fun stream -> observe.While( (fun _ -> true), ofAsync(stream.AsyncRead(20)) ))
+    |> map (fun bytes -> readCoordinates bytes)

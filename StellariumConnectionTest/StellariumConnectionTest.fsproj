@@ -71,6 +71,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AssemblyInfo.fs" />
+    <Compile Include="Scope.fs" />
+    <Compile Include="Clock.fs" />
     <Compile Include="Server.fs" />
     <Compile Include="Program.fs" />
     <None Include="packages.config" />
